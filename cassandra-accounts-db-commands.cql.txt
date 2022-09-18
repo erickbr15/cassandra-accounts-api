@@ -1,0 +1,97 @@
+
+DROP KEYSPACE IF EXISTS accounts;
+
+CREATE KEYSPACE accounts WITH REPLICATION = {{ 'class' : 'NetworkTopologyStrategy', 'datacenter1' : 1 }};
+
+CREATE TABLE IF NOT EXISTS accounts.accounts_by_user(
+	username TEXT,
+	account_number TEXT,
+	cash_balance DECIMAL,
+	name TEXT STATIC,
+	PRIMARY KEY((username), account_number));
+
+CREATE TABLE IF NOT EXISTS accounts.possitions_by_account(
+	account TEXT,
+	symbol TEXT,
+	quantity INT,
+	PRIMARY KEY((account), symbol));
+
+CREATE TABLE IF NOT EXISTS accounts.trades_by_a_d (
+	account TEXT,
+	trade_id TIMEUUID,
+	type TEXT,
+	symbol TEXT,
+	shares INT,
+	price DECIMAL,
+	amount DECIMAL,
+	PRIMARY KEY((account), trade_id)) 
+	WITH CLUSTERING ORDER BY(trade_id DESC);
+
+CREATE TABLE IF NOT EXISTS accounts.trades_by_a_td (
+	account TEXT,
+	trade_id TIMEUUID,
+	type TEXT,
+	symbol TEXT,
+	shares INT,
+	price DECIMAL,
+	amount DECIMAL,
+	PRIMARY KEY((account), type, trade_id)) 
+	WITH CLUSTERING ORDER BY(type ASC, trade_id DESC);
+
+CREATE TABLE IF NOT EXISTS accounts.trades_by_a_std (
+	account TEXT,
+	trade_id TIMEUUID,
+	type TEXT,
+	symbol TEXT,
+	shares INT,
+	price DECIMAL,
+	amount DECIMAL,
+	PRIMARY KEY((account), type, symbol, trade_id)) 
+	WITH CLUSTERING ORDER BY(type ASC, symbol ASC, trade_id DESC);
+
+CREATE TABLE IF NOT EXISTS accounts.trades_by_a_sd (
+	account TEXT,
+	trade_id TIMEUUID,
+	type TEXT,
+	symbol TEXT,
+	shares INT,
+	price DECIMAL,
+	amount DECIMAL,
+	PRIMARY KEY((account), symbol, trade_id)) 
+	WITH CLUSTERING ORDER BY(symbol ASC, trade_id DESC);
+
+
+USE accounts;
+
+--Q1 Accounts by user
+SELECT * FROM accounts_by_user WHERE username = 'Gwen8';
+
+--Q2 Possitions by account
+SELECT * FROM possitions_by_account WHERE account = 'c1c42027-fc1e-4b00-b629-184d32027c17';
+
+--Q3.1 Trades by account
+SELECT * FROM trades_by_a_d WHERE account = 'c1c42027-fc1e-4b00-b629-184d32027c17';
+
+--Q3.2 Trades by account and date flight
+SELECT * FROM trades_by_a_d WHERE account = 'c1c42027-fc1e-4b00-b629-184d32027c17' 
+AND trade_id > maxTimeuuid('2022-01-01T00:00:00') 
+AND trade_id < minTimeuuid('2022-03-01T23:59:59');
+
+--Q3.3 Trades by account, date flight and type
+SELECT * FROM trades_by_a_td WHERE account = 'c1c42027-fc1e-4b00-b629-184d32027c17' 
+AND type = 'buy'
+AND trade_id > maxTimeuuid('2022-01-01T00:00:00') 
+AND trade_id < minTimeuuid('2022-03-01T23:59:59');
+
+--Q3.4 Trades by account, date flight, type and symbol
+SELECT * FROM trades_by_a_std WHERE account = 'c1c42027-fc1e-4b00-b629-184d32027c17' 
+AND type = 'buy'
+AND symbol = 'ISRG'
+AND trade_id > maxTimeuuid('2022-01-01T00:00:00') 
+AND trade_id < minTimeuuid('2022-03-01T23:59:59');
+
+--Q3.5 Trades by account, date flight and symbol
+SELECT * FROM trades_by_a_sd WHERE account = 'c1c42027-fc1e-4b00-b629-184d32027c17' 
+AND symbol = 'ISRG'
+AND trade_id > maxTimeuuid('2022-01-01T00:00:00') 
+AND trade_id < minTimeuuid('2022-03-01T23:59:59');
